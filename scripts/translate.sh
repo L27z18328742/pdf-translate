@@ -2,15 +2,18 @@
 # translate.sh — translate a PDF with pdf2zh_next, auto-detecting the best engine.
 #
 # Engine selection (unless --engine is given):
-#   1. openai      — if OPENAI_API_KEY (or --api-key) is available. Reuses the
+#   1. claudecode   — if `claude` CLI is on PATH (user is in Claude Code).
+#                     Calls `claude -p` with the model Claude Code is configured
+#                     to use. Slower (subprocess per segment) but uses the same
+#                     model the user is already working with.
+#   2. openai       — if OPENAI_API_KEY (or --api-key) is available. Reuses the
 #                    OpenAI-compatible gateway configured for Codex: base_url + model
 #                    are read from ~/.codex/config.toml, the key from OPENAI_API_KEY.
-#                    Fast (HTTP, high concurrency). DEFAULT when a key exists.
-#   2. siliconflowfree — zero-config fallback (free GLM-4-9B service, no key).
+#                    Fast (HTTP, high concurrency).
+#   3. siliconflowfree — zero-config fallback (free GLM-4-9B service, no key).
 #
-# You can force either, or use the claudecode engine (calls `claude -p` with the
-# model Claude Code is configured to use — slower, subprocess per segment):
-#   --engine openai | siliconflowfree | claudecode
+# You can force any engine:
+#   --engine claudecode | openai | siliconflowfree
 #
 # Usage:
 #   translate.sh <input.pdf> [--output <dir>] [--pages "1-5,8"]
@@ -112,8 +115,14 @@ PY
 }
 
 # -------------------------------- engine choice -------------------------------
+# Detection priority:
+#   1. claudecode   — if `claude` CLI is available (user is in Claude Code)
+#   2. openai       — if OPENAI_API_KEY is set (Codex / external gateway)
+#   3. siliconflowfree — zero-config fallback
 if [[ -z "$ENGINE" ]]; then
-  if [[ -n "${OPENAI_API_KEY:-}" || -n "$API_KEY" ]]; then
+  if command -v claude >/dev/null 2>&1; then
+    ENGINE="claudecode"
+  elif [[ -n "${OPENAI_API_KEY:-}" || -n "$API_KEY" ]]; then
     ENGINE="openai"
   else
     ENGINE="siliconflowfree"
@@ -189,7 +198,11 @@ esac
 
 echo "[translate] output dir: $OUTPUT"
 echo "[translate] running: ${CMD[*]}"
-echo "(first run downloads model assets and will be slow — subsequent runs use cache)"
+# Only warn about the one-time model download if the assets aren't cached yet.
+BABELDOC_CACHE="$HOME/.cache/babeldoc"
+if [[ ! -d "$BABELDOC_CACHE/models" ]] || [[ -z "$(ls -A "$BABELDOC_CACHE/models" 2>/dev/null)" ]]; then
+  echo "(first run downloads model assets and will be slow — subsequent runs use cache)"
+fi
 echo
 
 # Run it. Don't use set -e for the command itself so we can report cleanly.

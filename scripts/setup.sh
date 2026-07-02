@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 # setup.sh — ensure pdf2zh_next (PDFMathTranslate-next) is installed and on PATH.
-# Idempotent: safe to re-run. Uses uv with Python 3.12 (the project's recommendation).
+#
+# Idempotent and FAST on subsequent runs: if pdf2zh_next is already installed
+# and the model assets are already cached, this returns near-instantly and
+# silently (it does NOT spawn a Python import or call `--version`, which would
+# re-emit engine-selection warnings every time). Re-running is always safe.
 set -euo pipefail
 
 # Ensure uv's tool bin dir is on PATH for this shell and any child process.
@@ -16,17 +20,31 @@ command -v uv >/dev/null 2>&1 || {
   exit 1
 }
 
+# Model assets (DocLayout-YOLO + fonts) are downloaded by pdf2zh_next/babeldoc
+# on the first real translation and cached here afterwards.
+BABELDOC_CACHE="$HOME/.cache/babeldoc"
+models_cached() {
+  [[ -d "$BABELDOC_CACHE/models" ]] && [[ -n "$(ls -A "$BABELDOC_CACHE/models" 2>/dev/null)" ]]
+}
+
+# --- fast path: already installed (no Python import, no warning spew) ---
 if command -v pdf2zh_next >/dev/null 2>&1; then
-  echo "[setup] pdf2zh_next already installed: $(pdf2zh_next --version 2>/dev/null || echo 'version unknown')"
-else
-  echo "[setup] installing pdf2zh_next via uv (python 3.12)..."
-  uv tool install --python 3.12 pdf2zh-next
+  if models_cached; then
+    echo "[setup] ready — pdf2zh_next installed and models cached. Nothing to do; safe to skip on future runs."
+  else
+    echo "[setup] ready — pdf2zh_next installed at $(command -v pdf2zh_next)."
+    echo "[setup] NOTE: first translation will download model assets (~hundreds of MB, one-time)."
+  fi
+  exit 0
 fi
 
-# Final verification.
+# --- install path ---
+echo "[setup] installing pdf2zh_next via uv (python 3.12)..."
+uv tool install --python 3.12 pdf2zh-next
+
 if command -v pdf2zh_next >/dev/null 2>&1; then
-  echo "[setup] OK — pdf2zh_next ready: $(command -v pdf2zh_next)"
-  echo "[setup] NOTE: the first translation downloads model assets (~hundreds of MB) and will be slow."
+  echo "[setup] installed — $(command -v pdf2zh_next)"
+  echo "[setup] NOTE: first translation will download model assets (~hundreds of MB, one-time)."
 else
   echo "ERROR: pdf2zh_next still not on PATH after install." >&2
   echo "Add $UV_BIN_DIR to your PATH and re-run, or run pdf2zh_next via 'uv tool run pdf2zh-next'." >&2

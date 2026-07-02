@@ -18,13 +18,15 @@ Translating an academic PDF well requires preserving math, figures, and layout �
 
 Run the setup script first (installs `pdf2zh_next` if missing, verifies it), then the translate script (detects the best engine and runs the translation). Both scripts are idempotent.
 
+**Subsequent runs are fast.** Once `pdf2zh_next` is installed and the model assets are downloaded (after the first successful translation), setup.sh becomes a silent sub-second no-op — it detects the install and the `~/.cache/babeldoc/models` cache and returns immediately without spawning a Python import or re-downloading anything. Re-running it on every invocation is cheap and safe; you do not need to track whether setup has happened before.
+
 ### Step 1 — Ensure the environment is ready
 
 ```bash
 bash ~/.claude/skills/pdf-translate/scripts/setup.sh
 ```
 
-This installs `pdf2zh_next` via `uv tool install --python 3.12 pdf2zh-next` (the project requires Python ≥3.10,<3.14; 3.12 is the documented recommendation) and confirms it is on PATH. It is fast and safe to re-run. The first real translation will download layout/translation model assets (DocLayout-YOLO + fonts, ~hundreds of MB) — tell the user the first run is slow because of this one-time download.
+This installs `pdf2zh_next` via `uv tool install --python 3.12 pdf2zh-next` (the project requires Python ≥3.10,<3.14; 3.12 is the documented recommendation) and confirms it is on PATH. It is fast and safe to re-run. The first real translation downloads layout/translation model assets (DocLayout-YOLO + fonts, ~hundreds of MB) into `~/.cache/babeldoc/` — tell the user the first run is slow because of this one-time download. The setup and translate scripts detect this cache and skip the "slow first run" messaging once the models are present.
 
 ### Step 2 — Translate
 
@@ -34,9 +36,9 @@ bash ~/.claude/skills/pdf-translate/scripts/translate.sh "<input.pdf>" [options]
 
 The script auto-detects a translation engine:
 
-1. **OpenAI-compatible (default when a key exists)** — reuses the model the user configured for Codex. It reads `base_url` + `model` from `~/.codex/config.toml` (the active `model_provider`'s `base_url` and the top-level `model`) and the API key from `OPENAI_API_KEY`. The OpenAI engine calls `/v1/chat/completions` on that gateway — fast, high-concurrency, ideal for full papers. Verified to work with OpenAI-compatible gateways (including Codex-style internal gateways that expose chat-completions alongside the responses API).
-2. **SiliconFlowFree (zero-config fallback)** — used when no API key is detectable. The project's free GLM-4-9B service; needs no key. Note: file content is forwarded through the project maintainer's server.
-3. **ClaudeCode (explicit option)** — `--engine claudecode` shells out to the `claude` CLI (`claude -p --model sonnet ...`), so it uses the exact model Claude Code is configured to use (resolved via `ANTHROPIC_DEFAULT_SONNET_MODEL`, etc.). This is the most literal "use my Claude Code model" path, but it spawns one `claude -p` subprocess per text segment, so it is much slower than the OpenAI engine — prefer it for short documents or when you specifically want Claude Code's model.
+1. **ClaudeCode (default when `claude` CLI is available)** — detects if the user is running from Claude Code by checking for the `claude` CLI on PATH. Uses the exact model Claude Code is configured to use (resolved via `ANTHROPIC_DEFAULT_SONNET_MODEL`, etc.). This is the default when working in Claude Code, so the translation uses the same model ecosystem the user is already in. Note: it spawns one `claude -p` subprocess per text segment, so it is slower than the OpenAI engine.
+2. **OpenAI-compatible (fallback when API key exists)** — used when `claude` CLI is not found but `OPENAI_API_KEY` is set. Reuses the model configured for Codex: reads `base_url` + `model` from `~/.codex/config.toml` and the API key from `OPENAI_API_KEY`. Fast (HTTP, high concurrency), ideal for full papers.
+3. **SiliconFlowFree (zero-config fallback)** — used when neither `claude` CLI nor API key is detectable. The project's free GLM-4-9B service; needs no key. Note: file content is forwarded through the project maintainer's server.
 
 Override detection with flags: `--engine openai|siliconflowfree|claudecode`, `--model <name>`, `--base-url <url>`, `--api-key <key>`.
 
@@ -55,7 +57,7 @@ After the script finishes, it prints the paths of the generated `*-mono.pdf` and
 ## Default behavior choices (and how to change them)
 
 - **Source/target language**: English → Simplified Chinese (`en` → `zh-CN`). Override with `--lang-in` / `--lang-out`. Full language code list is in `references/advanced.md`.
-- **Engine**: OpenAI-compatible when a key is found, else SiliconFlowFree. Use `--engine claudecode` to drive the Claude Code CLI instead. The OpenAI engine reuses the model named in `~/.codex/config.toml`; the claudecode engine reuses Claude Code's configured model.
+- **Engine**: ClaudeCode when `claude` CLI is on PATH (default in Claude Code), else OpenAI-compatible when a key is found, else SiliconFlowFree. Use `--engine openai` to force the OpenAI engine even from Claude Code. The claudecode engine reuses Claude Code's configured model; the OpenAI engine reuses the model named in `~/.codex/config.toml`.
 - **Model**: for the openai engine, the model from `~/.codex/config.toml`; for claudecode, `sonnet` (resolved by Claude Code to the user's configured model). Reasoning models (e.g. `gpt-5.5`, `glm-5.2`) work but are slower and use more tokens; for large papers consider a lighter chat model via `--model`.
 - **Concurrency**: modest defaults (`--qps 10 --pool-max-workers 30` for the OpenAI engine; `--qps 4 --pool-max-workers 8` for claudecode since each segment is a subprocess). Increase for faster translation if the gateway allows it.
 
