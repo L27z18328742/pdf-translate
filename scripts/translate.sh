@@ -130,7 +130,7 @@ if [[ -z "$ENGINE" ]]; then
 fi
 
 # Base command — every engine shares these.
-CMD=(pdf2zh_next "$INPUT" --lang-in "$LANG_IN" --lang-out "$LANG_OUT" --output "$OUTPUT")
+CMD=(pdf2zh_next "$INPUT" --lang-in "$LANG_IN" --lang-out "$LANG_OUT" --output "$OUTPUT" --watermark-output-mode no_watermark)
 [[ -n "$PAGES" ]]        && CMD+=(--pages "$PAGES")
 [[ -n "$QPS" ]]          && CMD+=(--qps "$QPS")
 [[ -n "$POOL" ]]         && CMD+=(--pool-max-workers "$POOL")
