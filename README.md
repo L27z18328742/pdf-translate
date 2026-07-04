@@ -158,6 +158,7 @@ translate.sh paper.pdf --lang-in zh-CN --lang-out en
 - **[DocLayout-YOLO](https://github.com/opendatalab/DocLayout-YOLO)** — 高精度文档布局检测模型，为 PDF 解析提供精准的段落、公式、图表区域识别。
 - **[Claude Code](https://claude.ai/code)** — Anthropic 的 AI 编程助手，本技能的运行平台。
 - **[uv](https://github.com/astral-sh/uv)** — Astral 开发的极速 Python 包管理器，让环境安装变得简单可靠。
+- **[LINUX DO](https://linux.do)** — 真诚、友善、团结、专业，共建你我引以为荣之社区。
 
 ---
 
