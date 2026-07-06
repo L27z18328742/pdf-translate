@@ -15,7 +15,7 @@
 
 在 Claude Code 中使用 pdf-translate 翻译论文的完整流程演示：
 
-[🎬 点击观看演示视频（github_video.mp4）](https://github.com/L27z18328742/pdf-translate/raw/main/videos/github_video.mp4)
+https://raw.githubusercontent.com/L27z18328742/pdf-translate/main/videos/github_video.mp4
 
 ---
 
