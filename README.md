@@ -15,8 +15,8 @@
 
 在 Claude Code 中使用 pdf-translate 翻译论文的完整流程演示：
 
-<video src="https://raw.githubusercontent.com/L27z18328742/pdf-translate/main/videos/github_video.mp4" controls width="100%">
-  你的浏览器不支持视频标签。可以 <a href="https://raw.githubusercontent.com/L27z18328742/pdf-translate/main/videos/github_video.mp4">点击这里下载观看</a>。
+<video src="./videos/github_video.mp4" controls preload="metadata" width="100%">
+  你的浏览器不支持视频标签。可以 <a href="./videos/github_video.mp4">点击这里下载观看</a>。
 </video>
 
 ---
