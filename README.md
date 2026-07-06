@@ -11,6 +11,18 @@
 
 ---
 
+## 演示
+
+在 Claude Code 中使用 pdf-translate 翻译论文的完整流程演示：
+
+<video src="https://github.com/L27z18328742/pdf-translate/raw/main/videos/github_video.mp4" controls width="100%">
+  你的浏览器不支持视频标签。可以 <a href="https://github.com/L27z18328742/pdf-translate/raw/main/videos/github_video.mp4">点击这里下载观看</a>。
+</video>
+
+> 🎬 视频演示了从安装环境到翻译完成的完整过程。
+
+---
+
 ## 前置要求
 
 本技能依赖 **[uv](https://docs.astral.sh/uv/)**（Python 包管理器）来安装 `pdf2zh_next`。请先安装 uv：
